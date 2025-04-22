@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Leaflet -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        
+        <!-- Leaflet.markercluster Plugin -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+        <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    
+        <!-- Leaflet Heatmap Plugin -->
+        <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+        
+        <style>
+            /* Existing styles */
+        </style>
+    </head>
+<body>
+    <!-- Hidden Debug Data -->
+    <div hidden id="temp-data">{{ temperature|safe }}</div>
+    <div hidden id="cyclone-data">{{ cyclones|safe }}</div>
+
+    <div id="map"></div>
+
+    <script>
+    // Initialize Map with Valid View
+    const map = L.map('map', {
+        center: [20, 0],
+        zoom: 2,
+        minZoom: 2,
+        maxBounds: [[-90, -180], [90, 180]],
+        worldCopyJump: true
+    });
+
+    // CartoDB Basemap (Alternative to OSM)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CartoDB',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Earthquake Layer with Cluster Support
+    const quakeMarkers = L.markerClusterGroup();
+    {% for quake in earthquakes %}
+    const quakePopup{{ forloop.counter }} = L.popup().setContent(`
+        <b>M{{ quake.mag }} Earthquake</b><hr>
+        <small>📍 {{ quake.place|safe }}</small><br>
+        <small>🕒 ${new Date({{ quake.time }}).toLocaleString()}</small>
+    `);
+    
+    L.marker([{{ quake.lat }}, {{ quake.lng }}], {
+        icon: L.divIcon({
+            className: 'quake-marker',
+            html: `<div style="
+                background: #ff0000;
+                width: ${Math.min({{ quake.mag }} * 5, 30)}px;
+                height: ${Math.min({{ quake.mag }} * 5, 30)}px;
+                border-radius: 50%;
+                opacity: 0.7;
+            "></div>`
+        })
+    }).bindPopup(quakePopup{{ forloop.counter }}).addTo(quakeMarkers);
+    {% endfor %}
+
+    // Cyclone Paths with Date Information
+    const cycloneLayer = L.layerGroup();
+    {% for cyclone in cyclones %}
+    const cyclonePath = L.polyline({{ cyclone.path|safe }}, {
+        color: '#FF6B35',
+        weight: 2,
+        opacity: 0.9
+    }).bindPopup(`
+        <b>{{ cyclone.name }}</b><hr>
+        <small>📅 Year: {{ cyclone.year }}</small><br>
+        <small>📏 Path Length: {{ cyclone.path|length }} points</small>
+    `);
+    cyclonePath.addTo(cycloneLayer);
+    {% endfor %}
+
+    // Temperature Heatmap with Adjusted Parameters
+    const tempData = JSON.parse(document.getElementById('temp-data').textContent);
+    const heatmapLayer = L.heatLayer(
+        tempData.map(entry => [entry.lat, entry.lng, entry.anomaly]),
+        {
+            radius: 50,
+            max: 1.5,
+            gradient: {
+                0.2: '#313695',  // dark blue
+                0.4: '#4575b4',  // medium blue
+                0.6: '#74add1',  // light blue
+                0.7: '#abd9e9',  // very light blue
+                0.8: '#e0f3f8',  // pale blue
+                0.9: '#ffffbf',  // yellow
+                1.0: '#fdae61'   // orange
+            },
+            blur: 40,
+            minOpacity: 0.3
+        }
+    );
+
+    // Layer Control with Default Activation
+    const layerControl = L.control.layers(
+        null,
+        {
+            '🌋 Earthquakes (Cluster)': quakeMarkers,
+            '🌀 Cyclone Paths': cycloneLayer,
+            '🌡 Temperature Anomalies': heatmapLayer
+        },
+        {
+            collapsed: false,
+            position: 'topright'
+        }
+    ).addTo(map);
+
+    // Activate Layers
+    quakeMarkers.addTo(map);
+    cycloneLayer.addTo(map);
+    if (tempData.length > 0) heatmapLayer.addTo(map);
+
+    // Debug Output
+    console.log('Temperature Data:', tempData);
+    console.log('Cyclone Paths:', JSON.parse(document.getElementById('cyclone-data').textContent));
+    console.log('Earthquake Markers:', {{ earthquakes|length }});
+
+    // Fix map rendering issues
+    setTimeout(() => map.invalidateSize(), 100);
+    </script>
+</body>
+</html>
