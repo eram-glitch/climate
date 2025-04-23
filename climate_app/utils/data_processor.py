@@ -1,60 +1,51 @@
+from datetime import datetime
+
 def process_nasa_temp(nasa_data):
+    current_month = datetime.utcnow().strftime('%b')  # e.g., "Apr"
     processed = []
-    for entry in nasa_data.get('data', []):
-        try:
-            # Verify data structure
-            if not all(key in entry for key in ['Year', 'J-D']):
-                continue
-                
-            year = int(entry['Year'])
-            if 1993 <= year <= 2023:
-                anomaly = float(entry['J-D'])
-                
-                # New coordinate calculation (5x6 grid)
-                grid_cols = 6
-                row = (year - 1993) // grid_cols
-                col = (year - 1993) % grid_cols
-                
-                lat = -75 + (row * 30)  # 30° between rows
-                lng = -165 + (col * 60)  # 60° between columns
-                
+    
+    # Create a more realistic global grid
+    for lat in range(-90, 91, 15):  # Every 15 degrees of latitude
+        for lng in range(-180, 181, 30):  # Every 30 degrees of longitude
+            # Find the average temperature anomaly for this month across years
+            total_anomaly = 0
+            count = 0
+            for entry in nasa_data.get('data', []):
+                try:
+                    year = int(entry['Year'])
+                    if 1993 <= year <= 2023:  # Last 30 years
+                        anomaly = float(entry.get(current_month, 0) or 0)
+                        total_anomaly += anomaly
+                        count += 1
+                except Exception as e:
+                    print(f"Temp Error: {str(e)} | Entry: {entry}")
+            
+            if count > 0:
+                avg_anomaly = total_anomaly / count
                 processed.append({
-                    'year': year,
-                    'anomaly': anomaly,
                     'lat': lat,
-                    'lng': lng
+                    'lng': lng,
+                    'anomaly': avg_anomaly
                 })
-        except Exception as e:
-            print(f"Temp Error: {str(e)} | Entry: {entry}")
+    
     return processed
 
-# climate_app/utils/data_processor.py
-def process_cyclones(ibtracs_data):
+def process_gdacs_cyclones(alert_data):
     processed = []
-    try:
-        # Handle different API response formats
-        storms = ibtracs_data.get('data', {}).get('storms', []) if 'data' in ibtracs_data else ibtracs_data.get('storms', [])
-        
-        for storm in storms:
-            valid_points = []
-            for point in storm.get('points', []):
-                try:
-                    lat = float(point['lat'])
-                    lon = float(point['lon'])
-                    if -90 <= lat <= 90 and -180 <= lon <= 180:
-                        valid_points.append([lat, lon])
-                except (KeyError, ValueError):
-                    continue
-            
-            if len(valid_points) > 1:  # Require at least 2 points for a path
+    for alert in alert_data.get('events', []):
+        try:
+            lat = float(alert.get('lat'))
+            lon = float(alert.get('lon'))
+            if -90 <= lat <= 90 and -180 <= lon <= 180:
                 processed.append({
-                    'name': storm.get('name', 'Unnamed Storm'),
-                    'year': storm.get('season', 'Unknown'),
-                    'path': valid_points
+                    'name': alert.get('eventname', 'Unnamed Cyclone'),
+                    'year': alert.get('fromdate', '')[:4],
+                    'path': [[lat, lon]]
                 })
-    except Exception as e:
-        print(f"Cyclone processing error: {str(e)}")
+        except Exception as e:
+            print(f"GDACS cyclone parse error: {str(e)}")
     return processed
+
 
 def process_earthquakes(usgs_data):
     quakes = []

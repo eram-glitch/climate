@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <title>Global Climate Monitor</title>
         <!-- Leaflet -->
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -14,17 +15,106 @@
         <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
         
         <style>
-            /* Existing styles */
+            html, body {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                font-family: Arial, sans-serif;
+            }
+        
+            #map {
+                height: 100vh;
+                width: 100%;
+                z-index: 1;
+            }
+            
+            .info-panel {
+                position: absolute;
+                bottom: 20px;
+                left: 20px;
+                background: rgba(255, 255, 255, 0.9);
+                padding: 10px 15px;
+                border-radius: 5px;
+                box-shadow: 0 0 15px rgba(0,0,0,0.2);
+                z-index: 1000;
+                max-width: 300px;
+            }
+            
+            .info-panel h3 {
+                margin: 0 0 10px 0;
+                color: #333;
+            }
+            
+            .legend {
+                position: absolute;
+                bottom: 20px;
+                right: 20px;
+                background: rgba(255, 255, 255, 0.9);
+                padding: 10px;
+                border-radius: 5px;
+                box-shadow: 0 0 15px rgba(0,0,0,0.2);
+                z-index: 1000;
+            }
+            
+            .legend-item {
+                display: flex;
+                align-items: center;
+                margin-bottom: 5px;
+            }
+            
+            .legend-color {
+                width: 20px;
+                height: 20px;
+                margin-right: 5px;
+                border-radius: 50%;
+            }
         </style>
     </head>
 <body>
-    <!-- Hidden Debug Data -->
+    
+    <!-- Hidden Data for JavaScript -->
     <div hidden id="temp-data">{{ temperature|safe }}</div>
     <div hidden id="cyclone-data">{{ cyclones|safe }}</div>
+    <div hidden id="disaster-data">{{ disasters|safe }}</div>
 
     <div id="map"></div>
+    
+    <!-- Info Panel -->
+    <div class="info-panel">
+        <h3>Global Climate Monitor</h3>
+        <p>Displaying temperature data for the last 30 years and real-time climate events</p>
+        <p id="current-month-info">Current Month: <span id="current-month"></span></p>
+    </div>
+    
+    <!-- Legend -->
+    <div class="legend">
+        <h4>Legend</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4575b4;"></div>
+            <span>Cold Temperature Anomaly</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #fdae61;"></div>
+            <span>Warm Temperature Anomaly</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ff0000;"></div>
+            <span>Earthquakes</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF6B35;"></div>
+            <span>Cyclones</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #8B0000;"></div>
+            <span>Other Disasters</span>
+        </div>
+    </div>
 
     <script>
+    // Set current month in info panel
+    document.getElementById('current-month').textContent = new Date().toLocaleString('default', { month: 'long' });
+    
     // Initialize Map with Valid View
     const map = L.map('map', {
         center: [20, 0],
@@ -73,10 +163,42 @@
         opacity: 0.9
     }).bindPopup(`
         <b>{{ cyclone.name }}</b><hr>
-        <small>📅 Year: {{ cyclone.year }}</small><br>
-        <small>📏 Path Length: {{ cyclone.path|length }} points</small>
+        <small>📅 Date: {{ cyclone.year }}</small><br>
+        {% if cyclone.alert_level %}
+        <small>⚠️ Alert Level: {{ cyclone.alert_level }}</small><br>
+        {% endif %}
+        {% if cyclone.days_ago == 0 %}
+        <span style="color: red; font-weight: bold;">⚠️ ACTIVE TODAY</span>
+        {% elif cyclone.days_ago == 1 %}
+        <span style="color: orange; font-weight: bold;">⚠️ Started yesterday</span>
+        {% elif cyclone.days_ago %}
+        <small>Started {{ cyclone.days_ago }} days ago</small>
+        {% endif %}
     `);
     cyclonePath.addTo(cycloneLayer);
+    {% endfor %}
+    
+    // Other Disasters Layer
+    const disasterLayer = L.layerGroup();
+    {% for disaster in disasters %}
+    const disasterIcon = L.divIcon({
+        className: 'disaster-marker',
+        html: `<div style="
+            background: #8B0000;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            opacity: 0.8;
+        "></div>`
+    });
+    
+    L.marker([{{ disaster.lat }}, {{ disaster.lng }}], { icon: disasterIcon })
+        .bindPopup(`
+            <b>{{ disaster.title }}</b><hr>
+            <small>Type: {{ disaster.category }}</small><br>
+            <small>Date: {{ disaster.date }}</small>
+        `)
+        .addTo(disasterLayer);
     {% endfor %}
 
     // Temperature Heatmap with Adjusted Parameters
@@ -104,9 +226,10 @@
     const layerControl = L.control.layers(
         null,
         {
+            '🌡 Temperature Anomalies': heatmapLayer,
             '🌋 Earthquakes (Cluster)': quakeMarkers,
-            '🌀 Cyclone Paths': cycloneLayer,
-            '🌡 Temperature Anomalies': heatmapLayer
+            '🌀 Cyclone Alerts': cycloneLayer,
+            '⚠️ Other Disasters': disasterLayer
         },
         {
             collapsed: false,
@@ -117,12 +240,8 @@
     // Activate Layers
     quakeMarkers.addTo(map);
     cycloneLayer.addTo(map);
+    disasterLayer.addTo(map);
     if (tempData.length > 0) heatmapLayer.addTo(map);
-
-    // Debug Output
-    console.log('Temperature Data:', tempData);
-    console.log('Cyclone Paths:', JSON.parse(document.getElementById('cyclone-data').textContent));
-    console.log('Earthquake Markers:', {{ earthquakes|length }});
 
     // Fix map rendering issues
     setTimeout(() => map.invalidateSize(), 100);
