@@ -128,18 +128,26 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'climate_app', 'static')]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "gdacs-cache"
+    }
+}
+
+import mimetypes
+mimetypes.add_type("model/gltf-binary", ".glb", True)
+
 
 from dotenv import load_dotenv
 load_dotenv()
-NASA_CREDS = (os.getenv('NASA_EARTHDATA_USER'), os.getenv('NASA_EARTHDATA_PASS'))
-IBTRACS_URL = "https://www.ncei.noaa.gov/ibtracs/php/IDBsearch.php"
-IBTRACS_API_KEY = os.getenv('IBTRACS_API_KEY') 
+FIRMS_API_KEY = "f003deacad6a17df77e6f9d7a63095fb"
 USGS_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"

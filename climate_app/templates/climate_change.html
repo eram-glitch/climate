@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-16 space-y-24">
+  <!-- 🌎 Header -->
+  <div class="text-center">
+    <h1 class="text-5xl sm:text-6xl main-font font-extrabold text-gray-800">
+      Climate Change Dashboard
+    </h1>
+    <p class="text-gray-600 text-base max-w-3xl mx-auto text-center mt-4 main-font">
+  This dashboard presents visual insights into key indicators of climate change—rising temperatures, increasing CO₂ emissions, and the growing impact of climate-related disasters. Use the charts and maps to explore how our planet is changing.
+</p>
+
+  </div>
+
+  <!-- 🌡 Temperature -->
+  <section class="space-y-6">
+    <h2 class="text-4xl font-semibold text-gray-700 main-font">🌡 Global Temperature Anomalies</h2>
+    <p class="text-gray-600 main-font text-lg mx-auto">
+  The term temperature anomaly means a departure from a reference value or long-term average. A positive anomaly indicates that the observed temperature was warmer than the reference value, while a negative anomaly indicates that the observed temperature was cooler than the reference value. <br/> <br/>
+  This chart shows deviations in global surface temperature compared to the 20th-century average. Rising anomalies over recent decades reflect accelerated warming driven by greenhouse gas emissions, particularly from fossil fuel use and deforestation.<br/> <br/>
+  According to the RCP 8.5 scenario, the temperature anomaly is expected to reach a mean value of 3.70 °C at the end of the century and the temperature is expected to rise even more until 2100 reaching 5.28 °C.
+</p>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <canvas id="temperatureBarChart" height="150"></canvas>
+    </div>
+  </section>
+
+<!-- 🌍 CO₂ Emissions -->
+<section class="space-y-6">
+
+  <div class="py-6">
+    <h2 class="text-4xl font-semibold text-gray-700 main-font">Annual CO₂ Emissions</h2>
+        <h2 class="text font-medium text-gray-700 main-font">Global CO2 emissions from fossil fuels</h2>
+        <p class="text-gray-600 main-font text-lg mx-auto mt-4">
+  CO₂ emissions are the primary driver of global warming. This section visualizes emissions geographically and over time, helping us understand which countries contribute most and how trends are evolving.<br/> <br/>
+  The world’s largest per capita CO2 emitters are the major oil-producing countries; this is particularly true for those with relatively low population size. Most are in the Middle East and include Qatar, the United Arab Emirates, Bahrain, and Kuwait.<br/> <br/>
+However, many of the major oil producers have a relatively small population meaning their total annual emissions are low. More populous countries with some of the highest per capita emissions – and therefore high total emissions – are the United States, Australia, and Canada which on average have emissions that are around 3 times higher than the global average.
+</p>
+
+  </div>
+
+  <!-- Toggle View (centered) -->
+  <div class="flex justify-center">
+    <div id="toggleGroup" class="inline-flex rounded-full bg-[#f44343] p-1 shadow-inner text-sm font-semibold">
+      <button id="mapViewBtn" class="px-4 py-1 rounded-full bg-white text-black shadow">Map</button>
+      <button id="chartViewBtn" class="px-4 py-1 rounded-full text-gray-900 transition-all duration-200">Chart</button>
+    </div>
+  </div>
+<p class="text-gray-600 main-font text-medium">
+  The map highlights annual fossil fuel CO₂ emissions by country. Darker shades indicate higher emissions. Hover over countries to see emission estimates for the selected year.
+</p>
+
+  <!-- Map View -->
+  <div id="co2-map-section" class="space-y-4">
+    <div class="bg-white rounded-lg shadow px-2 pt-4 pb-6">
+      <div id="co2-map" class="h-[500px] w-full rounded-lg overflow-hidden">
+        <!-- Leaflet map renders here -->
+      </div>
+      <div id="map-legend" class="legend text-sm text-gray-700 mt-4"></div>
+    </div>
+    <!-- Year Slider below map -->
+<div class="w-full max-w-xl mx-auto mt-4">
+  <label for="co2-year" class="block text-sm main-font font-semibold text-center text-gray-700 mb-2">
+    Select Year
+  </label>
+
+  <div class="relative">
+    <input id="co2-year" type="range"
+      class="w-full h-2 bg-gradient-to-r from-[#f44343] to-[#f44343] rounded-full appearance-none cursor-pointer focus:outline-none">
+    
+    <!-- Tooltip -->
+    <div id="co2-year-tooltip"
+      class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-white text-[#f44343] text-xs font-semibold px-2 py-1 rounded-md shadow transition-all duration-100">
+      —
+    </div>
+  </div>
+
+  <div class="flex justify-between text-sm mt-2 main-font text-gray-600">
+    <span id="co2-year-min">—</span>
+    <span id="co2-year-max">—</span>
+  </div>
+</div>
+
+  </div>
+<p class="text-gray-600 main-font text-medium">
+  Track emission trends for key contributors—World, China, U.S., and India—across a selected year range. This view helps compare national trends and evaluate progress on emission reduction.
+</p>
+
+<!-- Line Chart View -->
+<div id="co2-line-section" class="space-y-4 hidden">
+  <div class="bg-white rounded-lg shadow p-4">
+    <canvas id="co2-line-chart" height="150"></canvas>
+  </div>
+
+  <!-- Centered year range controls -->
+  <div class="flex flex-col items-center space-y-4 mt-6">
+    <label class="font-lg font-semibold text-gray-700 text-center text-lg main-font">
+      Select Year Range
+    </label>
+    
+    <!-- Slider -->
+    <div id="slider-range" class="w-full max-w-xl"></div>
+
+    <!-- Year range text -->
+    <div class="text-sm text-gray-600 main-font">
+      Years: <span id="range-label" class="font-semibold text-gray-800">----</span>
+    </div>
+  </div>
+</div>
+
+</section>
+
+
+  <!-- ⚠ Disasters -->
+  <section class="space-y-6">
+    <h2 class="text-2xl font-semibold text-gray-700 main-font">⚠ Climate Disasters Over Time</h2>
+    <p class="text-gray-600 main-font text-lg mx-auto">
+  Climate change is amplifying the frequency and severity of disasters. This stacked bar chart illustrates the number of major floods, wildfires, and droughts reported globally each year.
+</p>
+
+    <div class="bg-white rounded-lg shadow p-6">
+      <canvas id="disasterChart" height="150"></canvas>
+    </div>
+  </section>
+</div>
+
+<!-- 📌 Missing Data Pattern -->
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <pattern id="diagonalHatch" patternUnits="userSpaceOnUse" width="8" height="8">
+      <path d="M0,0 l8,8 M-1,1 l2,-2 M7,9 l2,-2" stroke="#aaa" stroke-width="1" />
+    </pattern>
+  </defs>
+</svg>
+
+<!-- Dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.0/dist/nouislider.min.js"></script>
+<script src="{% static 'js/climate_charts.js' %}"></script>
+
+<script>
+  const mapViewBtn = document.getElementById("mapViewBtn");
+  const chartViewBtn = document.getElementById("chartViewBtn");
+  const mapSection = document.getElementById("co2-map-section");
+  const chartSection = document.getElementById("co2-line-section");
+
+  mapViewBtn.addEventListener("click", () => {
+    mapViewBtn.classList.add("bg-white", "text-black", "shadow");
+    mapViewBtn.classList.remove("text-gray-700");
+    chartViewBtn.classList.remove("bg-white", "text-black", "shadow");
+    chartViewBtn.classList.add("text-gray-700");
+
+    mapSection.style.display = "block";
+    chartSection.style.display = "none";
+  });
+
+  chartViewBtn.addEventListener("click", () => {
+    chartViewBtn.classList.add("bg-white", "text-black", "shadow");
+    chartViewBtn.classList.remove("text-gray-700");
+    mapViewBtn.classList.remove("bg-white", "text-black", "shadow");
+    mapViewBtn.classList.add("text-gray-700");
+
+    mapSection.style.display = "none";
+    chartSection.style.display = "block";
+  });
+</script>
+
+
+<!-- Map container style fix only -->
+<style>
+  #co2-map {
+    width: 100%;
+    height: 500px;
+    position: relative;
+    z-index: 0;
+  }
+
+  #co2-map .leaflet-container {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .leaflet-container {
+  background-color: #ffffff !important; /* Matches your site background */
+}
+
+
+  .legend {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .legend-color {
+    width: 20px;
+    height: 14px;
+    display: inline-block;
+  }
+
+  input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 0 2px rgba(0,0,0,0.3);
+  border: 1px solid #ccc;
+  margin-top: -4px; /* Align thumb vertically */
+}
+
+input[type="range"]::-moz-range-thumb {
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 0 2px rgba(0,0,0,0.3);
+  border: 1px solid #ccc;
+}
+
+/* Handle (thumb) */
+.noUi-handle {
+  background-color: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+  border-radius: 9999px;
+  width: 1rem;
+  height: 1rem;
+  top: -0.4rem; /* centers vertically */
+  cursor: pointer;
+}
+
+
+/* Track background */
+.noUi-connect {
+  background: #f44343 !important;
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+.noUi-base, .noUi-target {
+  background: #f3f4f6; /* Tailwind's gray-100 */
+  border-radius: 9999px;
+  height: 0.5rem;
+  box-shadow: none;
+  border: none;
+}
+
+/* Tooltip (if enabled) */
+.noUi-tooltip {
+  background: white;
+  color: #f44343;
+  border: 1px solid #f44343;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transform: translateY(-120%);
+}
+
+
+</style>
+{% endblock %}

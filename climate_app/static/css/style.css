@@ -1,0 +1,29 @@
+@font-face {
+  font-family: 'Gismo Trial';
+  src: url('../fonts/Gismo-Trial-Round-BF64af6220f00d1.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Gravitas One';
+  src: url('../fonts/GravitasOne-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('../fonts/BricolageGrotesque_24pt-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Ruska';
+  src: url('../fonts/ruskadisplay-regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+

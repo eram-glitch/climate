@@ -1,0 +1,205 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Climate Tracker{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Custom Font & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Canicula&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+
+  <style>
+    .logo-font {
+        font-family: 'Gismo Trial', sans-serif;
+    }
+
+    .main-font {
+        font-family: "Bricolage Grotesque"
+    }
+
+    .hero-font {
+        font-family: "Ruska"
+    }
+.layer-toggle {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 1.25rem;
+  background-color: white;
+  color: #f44343;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.layer-toggle:hover {
+  background-color: #ffe6e6;
+}
+
+.layer-toggle.active-toggle {
+  background-color: #f44343;
+  color: white;
+}
+@keyframes zoomInText {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceUp {
+  0% { transform: translateY(-10px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(-10px); }
+}
+
+.text-animate {
+  animation: zoomInText 1s ease-out forwards;
+  transform-origin: center;
+}
+
+.animate-bounceUp {
+  animation: bounceUp 2s ease-in-out infinite;
+}
+
+  canvas#globeCanvas {
+    transition: opacity 0.6s ease-in-out;
+  }
+
+  </style>
+
+</head>
+<body class="bg-[#fff9f0] text-gray-800 min-h-screen flex flex-col">
+
+  <!-- 🌍 Navigation -->
+<div id="nav-container" class="fixed top-0 left-0 w-full z-50 transition-transform duration-500 -translate-y-full">
+  <header class="backdrop-blur bg-gray/20 shadow-md px-6 py-2 border-b border-gray-200">
+    <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-6">
+
+    <!-- 🔗 Logo -->
+    <div class="flex items-center gap-3">
+    <img src="{% static 'img/logo.png' %}" alt="EcoTrack logo" class="w-10 h-10 md:w-16 md:h-16" />
+    <span class="text-2xl md:text-3xl lowercase logo-font text-gray-900">EcoTrack</span>
+    </div>
+
+
+    <!-- 📌 Navigation Links -->
+    <nav class="flex items-center space-x-8 text-base md:text-lg font-medium text-gray-900">
+      <a href="{% url 'home' %}" class="px-6 hover:text-orange-600 hover:underline transition font-bold">Disaster Tracker</a>
+      <a href="{% url 'climate_change' %}" class="font-bold px-6 hover:text-orange-600 hover:underline transition">Climate Change</a>
+    </nav>
+
+    <!-- 🎯 CTA + Profile -->
+    <div class="flex flex-wrap gap-3 items-center">
+      <button class="bg-[#FF4A00] text-white text-sm md:text-base font-semibold rounded-md px-5 py-2 hover:bg-[#e04300] transition">
+        Get full access
+      </button>
+      <button class="bg-white border border-gray-300 text-gray-900 text-sm md:text-base font-semibold rounded-md px-5 py-2 hover:bg-gray-50 transition">
+        Join us
+      </button>
+      <button aria-label="User profile" class="text-gray-900 hover:text-gray-700 focus:outline-none text-2xl">
+        <i class="fas fa-user-circle"></i>
+      </button>
+    </div>
+
+  </div>
+</header>
+</div>
+
+
+
+{% block hero %}
+<!-- 📝 Tagline -->
+<section class="relative h-[80vh] flex items-center justify-center overflow-hidden bg-cover bg-center" style="background-image: url('{% static 'img/hero-bg2.jpg' %}');">
+  <!-- Translucent Red Overlay -->
+  <div class="absolute inset-0 bg-[#f44343]/80 z-0"></div>
+
+  <div class="relative max-w-4xl mx-auto text-center z-10">
+    <h1 class="text-5xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-[#f7e6d6] font-bold  select-none pointer-events-none main-font font-extrabold">
+      Real-Time Disaster Tracking,<br>Monitoring climate change over the years
+    </h1>
+  </div>
+    <div class="absolute bottom-6 right-6 text-[#f7e6d6] text-xs sm:text-sm font-bold tracking-widest z-30">
+    <a href="{% url 'home' %}" class="px-6 hover:text-black hover:underline transition">
+      disaster tracker
+    </a>
+  </div>
+</section>
+{% endblock %}
+
+
+
+  <!-- Main Page Content -->
+<main class="flex-grow px-6 md:px-12 py-10 bg-[#fff9f0] text-white">
+    <div class="max-w-7xl mx-auto space-y-8">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- 📎 Footer -->
+    <footer class="flex items-center justify-center w-full mt-24 bg-[#f44343] min-h-40">
+        <div class="flex flex-col w-full px-4 text-[#FFFFE3] md:w-2/3">
+            <div class="w-full mt-16 font-bold text-7xl">
+                <h1 class="w-full main-font md:w-2/3">The world is now warming faster than at any point in recorded history.</h1>
+            </div>
+            <div class="flex flex-col mt-8 md:flex-row md:justify-between">
+                <p class="w-full font-semibold text-black md:w-2/3 main-font">Track global disasters and learn about climate change</p>
+            </div>
+            <div class="flex flex-col">
+                <div class="flex flex-row justify-between mt-10 mb-4">
+                    <div>
+                        <a class="relative font-bold group" href="{% url 'home' %}">
+                            <img src="{% static 'img/logo.png' %}" alt="Logo" width="64" height="64">
+                        </a>
+                    </div>
+                    <div class="flex flex-row items-center justify-between space-x-8">
+                        <a>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32"><path fill="currentColor" fill-rule="evenodd" d="M16 4C9.371 4 4 9.371 4 16c0 5.3 3.438 9.8 8.207 11.387c.602.11.82-.258.82-.578c0-.286-.011-1.04-.015-2.04c-3.34.723-4.043-1.609-4.043-1.609c-.547-1.387-1.332-1.758-1.332-1.758c-1.09-.742.082-.726.082-.726c1.203.086 1.836 1.234 1.836 1.234c1.07 1.836 2.808 1.305 3.492 1c.11-.777.422-1.305.762-1.605c-2.664-.301-5.465-1.332-5.465-5.93c0-1.313.469-2.383 1.234-3.223c-.121-.3-.535-1.523.117-3.175c0 0 1.008-.32 3.301 1.23A11.5 11.5 0 0 1 16 9.805c1.02.004 2.047.136 3.004.402c2.293-1.55 3.297-1.23 3.297-1.23c.656 1.652.246 2.875.12 3.175c.77.84 1.231 1.91 1.231 3.223c0 4.61-2.804 5.621-5.476 5.922c.43.367.812 1.101.812 2.219c0 1.605-.011 2.898-.011 3.293c0 .32.214.695.824.578C24.566 25.797 28 21.3 28 16c0-6.629-5.371-12-12-12"/></svg>                           
+                        </a>
+                        <a>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93zM6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37z"/></svg>
+                        </a>
+                        <a>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-2 -2 24 24"><g fill="currentColor"><path d="M14.017 0h-8.07A5.954 5.954 0 0 0 0 5.948v8.07a5.954 5.954 0 0 0 5.948 5.947h8.07a5.954 5.954 0 0 0 5.947-5.948v-8.07A5.954 5.954 0 0 0 14.017 0m3.94 14.017a3.94 3.94 0 0 1-3.94 3.94h-8.07a3.94 3.94 0 0 1-3.939-3.94v-8.07a3.94 3.94 0 0 1 3.94-3.939h8.07a3.94 3.94 0 0 1 3.939 3.94v8.07z"/><path d="M9.982 4.819A5.17 5.17 0 0 0 4.82 9.982a5.17 5.17 0 0 0 5.163 5.164a5.17 5.17 0 0 0 5.164-5.164A5.17 5.17 0 0 0 9.982 4.82zm0 8.319a3.155 3.155 0 1 1 0-6.31a3.155 3.155 0 0 1 0 6.31"/><circle cx="15.156" cy="4.858" r="1.237"/></g></svg>                           
+                        </a>
+                    </div>
+                </div>
+                <hr class="border-[#FFFFE3]"/>
+                <p class="w-full my-12 text-center text-black">Copyright © 2025 Ecotrack</p>
+            </div>
+        </div> 
+    </footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const nav = document.getElementById('nav-container');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > window.innerHeight * 0.7) {
+        nav.classList.remove('-translate-y-full');
+      } else {
+        nav.classList.add('-translate-y-full');
+      }
+    });
+  });
+</script>
+
+
+</body>
+</html>
