@@ -12,8 +12,6 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <!-- Custom Font & Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Canicula&display=swap" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
 
   <!-- Custom Styles -->
@@ -102,22 +100,10 @@
 
     <!-- 📌 Navigation Links -->
     <nav class="flex items-center space-x-8 text-base md:text-lg font-medium text-gray-900">
-      <a href="{% url 'home' %}" class="px-6 hover:text-orange-600 hover:underline transition font-bold">Disaster Tracker</a>
-      <a href="{% url 'climate_change' %}" class="font-bold px-6 hover:text-orange-600 hover:underline transition">Climate Change</a>
+      <a href="{% url 'home' %}" class="px-6 hover:text-orange-600 hover:underline transition font-bold main-font" style="font-variation-settings: 'wght' 900;">Disaster Tracker</a>
+      <a href="{% url 'climate_change' %}" class="font-bold px-6 hover:text-orange-600 hover:underline transition main-font" style="font-variation-settings: 'wght' 900;">Climate Change</a>
     </nav>
 
-    <!-- 🎯 CTA + Profile -->
-    <div class="flex flex-wrap gap-3 items-center">
-      <button class="bg-[#FF4A00] text-white text-sm md:text-base font-semibold rounded-md px-5 py-2 hover:bg-[#e04300] transition">
-        Get full access
-      </button>
-      <button class="bg-white border border-gray-300 text-gray-900 text-sm md:text-base font-semibold rounded-md px-5 py-2 hover:bg-gray-50 transition">
-        Join us
-      </button>
-      <button aria-label="User profile" class="text-gray-900 hover:text-gray-700 focus:outline-none text-2xl">
-        <i class="fas fa-user-circle"></i>
-      </button>
-    </div>
 
   </div>
 </header>

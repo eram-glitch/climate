@@ -40,6 +40,7 @@
 <script type="module">
   import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
   import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
+  
 
   document.addEventListener("DOMContentLoaded", () => {
     const canvas = document.getElementById('globeCanvas');
@@ -102,6 +103,15 @@
 
 
 {% block content %}
+<div class="max-w-7xl mx-auto px-6 py-16 space-y-24">
+  <!-- 🌎 Header -->
+  <div class="text-center">
+    <h1 class="text-5xl sm:text-6xl main-font font-extrabold text-gray-800" style="font-variation-settings: 'wght' 900;">
+      Real Time Natural Disasters
+    </h1>
+    <p class="py-4 text-gray-600 text-base max-w-3xl mx-auto text-center mt-4 main-font">
+Track Natural Disasters like Earthquake, Cyclone, Drought and Wildfires
+</p>
 
 
 <!-- 🔍 Custom Search Bar -->
@@ -151,6 +161,8 @@
   <button onclick="showLayer('cyclones')" class="layer-toggle" title="cyclones">🌀</button>
   <button onclick="showLayer('droughts')" class="layer-toggle" title="droughts">🌵</button>
   <button onclick="showLayer('fires')" class="layer-toggle" title="fires">🔥</button>
+  <button onclick="showLayer('floods')" class="layer-toggle" title="floods">🌊</button>
+
 </div>
 
 
@@ -163,7 +175,7 @@
 <!-- 🌐 Updated Minimal Sources Panel -->
 <div class="mt-4 flex flex-col md:flex-row justify-center items-start z-10 relative">
   <div id="data-source" class="text-sm text-center bg-white/80 backdrop-blur-sm text-gray-800 px-6 py-3 rounded-2xl shadow-sm border border-gray-100">
-    <p class="font-semibold">📡 <span class="opacity-80">Showing data from</span>
+    <p class="font-semibold">📡 <span class="opacity-80"></span>
       <span id="source-text">
         <a href="https://earthquake.usgs.gov/" class="text-blue-600 hover:underline" target="_blank">USGS Earthquakes</a>
       </span>
@@ -176,9 +188,11 @@
 <!-- 🌐 Leaflet + Globe Scripts -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 
@@ -259,144 +273,216 @@
   window.addEventListener('resize', resizeRenderer);
   resizeRenderer();
 
+let map; // ✅ Declare map globally
 
- document.addEventListener("DOMContentLoaded", () => {
-    const overlay = document.getElementById("loading-overlay");
+document.addEventListener("DOMContentLoaded", () => {
+  const overlay = document.getElementById("loading-overlay");
 
-    const map = L.map('map', {
-      center: [20, 0],
-      zoom: 2,
-      minZoom: 2,
-      maxBounds: [[-90, -180], [90, 180]],
-      worldCopyJump: false
+  map = L.map('map', {
+    center: [20, 0],
+    zoom: 2,
+    minZoom: 2,
+    maxBounds: [[-90, -180], [90, 180]],
+    worldCopyJump: false
+  });
+
+  const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  const quakeMarkers = L.markerClusterGroup();
+  const cycloneLayer = L.layerGroup();
+  const droughtLayer = L.layerGroup();
+  const floodLayer = L.layerGroup();
+  const fireMarkers = L.markerClusterGroup();
+
+function showLayer(type) {
+  map.eachLayer(layer => {
+    if (layer !== baseLayer) map.removeLayer(layer);
+  });
+
+  if (type === 'earthquakes') quakeMarkers.addTo(map);
+  else if (type === 'cyclones') cycloneLayer.addTo(map);
+  else if (type === 'droughts') droughtLayer.addTo(map);
+  else if (type === 'fires') fireMarkers.addTo(map);
+  else if (type === 'floods') floodLayer.addTo(map);  // ✅ Add this line
+
+  map.flyTo([20, 0], 2, {
+    animate: true,
+    duration: 1.2
+  });
+
+  updateSource(type);
+
+  document.querySelectorAll(".layer-toggle").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("title").toLowerCase() === type);
+  });
+}
+
+
+  window.showLayer = showLayer;
+
+  fetch("/api/disasters/")
+    .then(res => res.json())
+    .then(data => {
+      data.earthquakes.forEach(quake => {
+        const marker = L.marker([quake.lat, quake.lng], {
+          icon: L.divIcon({
+            className: 'quake-marker',
+            html: `<div style="background: #ff0000; width: ${quake.mag * 4}px; height: ${quake.mag * 4}px; border-radius: 50%; opacity: 0.7;"></div>`
+          })
+        }).bindPopup(`
+          <b>M${quake.mag} Earthquake</b><hr>
+          <small>📍 ${quake.place}</small><br>
+          <small>🕒 ${new Date(quake.time).toLocaleString()}</small>
+        `);
+        quakeMarkers.addLayer(marker);
+      });
+
+      data.cyclones.forEach(cyclone => {
+        L.circleMarker([cyclone.lat, cyclone.lon], {
+          radius: 8,
+          fillColor: '#FF6B35',
+          color: '#FF6B35',
+          fillOpacity: 0.8,
+          weight: 1
+        }).bindPopup(`
+          <b>🌀 ${cyclone.name}</b><hr>
+          <small>🟠 Alert: ${cyclone.alert_level}</small><br>
+          <small>📅 From: ${cyclone.fromdate || 'N/A'}</small><br>
+          <small>📅 To: ${cyclone.todate || 'N/A'}</small>
+        `).addTo(cycloneLayer);
+      });
+
+      data.droughts.forEach(drought => {
+        L.circleMarker([drought.lat, drought.lon], {
+          radius: 7,
+          fillColor: '#996600',
+          color: '#996600',
+          fillOpacity: 0.75,
+          weight: 1
+        }).bindPopup(`
+          <b>🌵 ${drought.name}</b><hr>
+          <small>🟢 Alert: ${drought.alert_level}</small><br>
+          <small>📅 From: ${drought.fromdate || 'N/A'}</small><br>
+          <small>📅 To: ${drought.todate || 'N/A'}</small>
+        `).addTo(droughtLayer);
+      });
+
+      data.fires.forEach(fire => {
+        const conf = fire.confidence || 50;
+
+        let fillColor = '#ffff00';
+        if (conf >= 80) fillColor = '#ff0000';
+        else if (conf >= 50) fillColor = '#ffa500';
+
+        // 🔥 Radius scaling based on brightness with a better range
+        const brightness = fire.brightness || 300;
+        const radius = Math.max(6, Math.min((brightness - 290) / 5, 20));
+
+        const marker = L.circleMarker([fire.lat, fire.lng], {
+          radius: radius,
+          fillColor,
+          color: fillColor,
+          fillOpacity: 0.85,
+          weight: 1
+        }).bindPopup(`
+          <b>🔥 Forest Fire</b><hr>
+          <small>Brightness: ${fire.brightness || 'N/A'}</small><br>
+          <small>Confidence: ${conf}</small><br>
+          <small>Date: ${fire.datetime || 'Unknown'}</small>
+        `);
+
+        fireMarkers.addLayer(marker);
+      });
+
+      data.floods.forEach(flood => {
+        L.circleMarker([flood.lat, flood.lon], {
+          radius: 7,
+          fillColor: '#0077cc',  // blue shade for floods
+          color: '#0077cc',
+          fillOpacity: 0.75,
+          weight: 1
+        }).bindPopup(`
+          <b>🌊 ${flood.name}</b><hr>
+          <small>🔵 Alert: ${flood.alert_level}</small><br>
+          <small>📅 From: ${flood.fromdate || 'N/A'}</small><br>
+          <small>📅 To: ${flood.todate || 'N/A'}</small>
+        `).addTo(floodLayer);
+      });
+
+
+      showLayer('earthquakes');
+      overlay.style.display = "none";
+    })
+    .catch(err => {
+      console.error("❌ Error loading data:", err);
+      overlay.style.display = "none";
     });
 
-    const baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap contributors',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(map);
-
-    const quakeMarkers = L.markerClusterGroup();
-    const cycloneLayer = L.layerGroup();
-    const droughtLayer = L.layerGroup();
-    const fireMarkers = L.markerClusterGroup();
-
-    // Active button highlight logic is here
-    function showLayer(type) {
-      map.eachLayer(layer => {
-        if (layer !== baseLayer) map.removeLayer(layer);
-      });
-
-      if (type === 'earthquakes') quakeMarkers.addTo(map);
-      else if (type === 'cyclones') cycloneLayer.addTo(map);
-      else if (type === 'droughts') droughtLayer.addTo(map);
-      else if (type === 'fires') fireMarkers.addTo(map);
-
-      updateSource(type);
-
-      const buttons = document.querySelectorAll(".layer-toggle");
-      buttons.forEach(btn => {
-        const btnTitle = btn.getAttribute("title").toLowerCase();
-        if (btnTitle === type) {
-          btn.classList.add("active");
-        } else {
-          btn.classList.remove("active");
-        }
-      });
+  function updateSource(layerType) {
+    const sourceText = document.getElementById("source-text");
+    const sources = {
+      earthquakes: `<a href="https://earthquake.usgs.gov/" target="_blank" class="text-blue-600 hover:underline">USGS Earthquakes</a>`,
+      cyclones: `<a href="https://www.gdacs.org/" target="_blank" class="text-blue-600 hover:underline">GDACS Cyclones</a>`,
+      droughts: `<a href="https://www.gdacs.org/" target="_blank" class="text-blue-600 hover:underline">GDACS Droughts</a>`,
+      floods: `<a href="https://www.gdacs.org/" target="_blank" class="text-blue-600 hover:underline">GDACS Floods</a>`,
+      fires: `<a href="https://firms.modaps.eosdis.nasa.gov/" target="_blank" class="text-blue-600 hover:underline">NASA FIRMS</a>`
+    };
+    if (sourceText) {
+      sourceText.innerHTML = `Showing data from ${sources[layerType] || "Unknown source"}.`;
     }
+  }
 
-    window.showLayer = showLayer;
+  // ✅ Moved inside DOMContentLoaded
+  const searchInput = document.getElementById("leaflet-search-input");
+  const searchBtn = document.getElementById("leaflet-search-btn");
 
-    fetch("/api/disasters/")
-      .then(res => res.json())
-      .then(data => {
-        data.earthquakes.forEach(quake => {
-          const marker = L.marker([quake.lat, quake.lng], {
-            icon: L.divIcon({
-              className: 'quake-marker',
-              html: `<div style="background: #ff0000; width: ${quake.mag}px; height: ${quake.mag}px; border-radius: 50%; opacity: 0.7;"></div>`
-            })
-          }).bindPopup(`
-            <b>M${quake.mag} Earthquake</b><hr>
-            <small>📍 ${quake.place}</small><br>
-            <small>🕒 ${new Date(quake.time).toLocaleString()}</small>
-          `);
-          quakeMarkers.addLayer(marker);
-        });
 
-        data.cyclones.forEach(cyclone => {
-          L.circleMarker([cyclone.lat, cyclone.lon], {
-            radius: 8,
-            fillColor: '#FF6B35',
-            color: '#FF6B35',
-            fillOpacity: 0.8,
-            weight: 1
-          }).bindPopup(`
-            <b>🌀 ${cyclone.name}</b><hr>
-            <small>🟠 Alert: ${cyclone.alert_level}</small><br>
-            <small>📅 From: ${cyclone.fromdate || 'N/A'}</small><br>
-            <small>📅 To: ${cyclone.todate || 'N/A'}</small>
-          `).addTo(cycloneLayer);
-        });
+function performSearch() {
+  const query = searchInput.value.trim();
+  if (!query) return;
 
-        data.droughts.forEach(drought => {
-          L.circleMarker([drought.lat, drought.lon], {
-            radius: 7,
-            fillColor: '#996600',
-            color: '#996600',
-            fillOpacity: 0.75,
-            weight: 1
-          }).bindPopup(`
-            <b>🌵 ${drought.name}</b><hr>
-            <small>🟢 Alert: ${drought.alert_level}</small><br>
-            <small>📅 From: ${drought.fromdate || 'N/A'}</small><br>
-            <small>📅 To: ${drought.todate || 'N/A'}</small>
-          `).addTo(droughtLayer);
-        });
+  console.log("🔍 Searching for:", query);
 
-        data.fires.forEach(fire => {
-          let fillColor = '#ffff00';
-          const conf = fire.confidence || 50;
-          if (conf >= 80) fillColor = '#ff0000';
-          else if (conf >= 50) fillColor = '#ffa500';
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1&email=canvaco95@gmail.com`;
 
-          const marker = L.circleMarker([fire.lat, fire.lng], {
-            radius: 4,
-            fillColor: fillColor,
-            color: fillColor,
-            fillOpacity: 0.9,
-            weight: 1
-          }).bindPopup(`
-            <b>🔥 Forest Fire</b><hr>
-            <small>Brightness: ${fire.brightness || 'N/A'}</small><br>
-            <small>Confidence: ${conf}</small><br>
-            <small>Date: ${fire.datetime || 'Unknown'}</small>
-          `);
-          fireMarkers.addLayer(marker);
-        });
+  fetch(url)
+    .then(response => response.json())
+    .then(results => {
+      console.log("📍 Results:", results);
+      if (results && results.length > 0) {
+        const lat = parseFloat(results[0].lat);
+        const lon = parseFloat(results[0].lon);
+        const name = results[0].display_name;
 
-        showLayer('earthquakes');
-        if (overlay) overlay.style.display = "none";
-      })
-      .catch(err => {
-        console.error("❌ Error loading data:", err);
-        if (overlay) overlay.style.display = "none";
-      });
+        map.flyTo([lat, lon], 6);
 
-    function updateSource(layerType) {
-      const sourceText = document.getElementById("source-text");
-      const sources = {
-        earthquakes: `<a href="https://earthquake.usgs.gov/" target="_blank" class="text-blue-600 hover:underline">USGS Earthquakes</a>`,
-        cyclones: `<a href="https://www.gdacs.org/" target="_blank" class="text-blue-600 hover:underline">GDACS Cyclones</a>`,
-        droughts: `<a href="https://www.gdacs.org/" target="_blank" class="text-blue-600 hover:underline">GDACS Droughts</a>`,
-        fires: `<a href="https://firms.modaps.eosdis.nasa.gov/" target="_blank" class="text-blue-600 hover:underline">NASA FIRMS</a>`
-      };
-      if (sourceText) {
-        sourceText.innerHTML = `Showing data from ${sources[layerType] || "Unknown source"}.`;
+        // Optional: drop a marker
+        L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup(`<b>${name}</b>`)
+          .openPopup();
+      } else {
+        alert("Location not found.");
       }
-    }
+    })
+    .catch(err => {
+      console.error("❌ Geocoding failed:", err);
+      alert("Search failed. Try again later.");
+    });
+}
+
+
+
+  searchBtn.addEventListener("click", performSearch);
+  searchInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") performSearch();
   });
+
+});
 </script>
 
 {% endblock %}
